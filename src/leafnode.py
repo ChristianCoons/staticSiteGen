@@ -11,16 +11,12 @@ class LeafNode(HTMLNode):
         returnString = ""
         if self.value is None:
             raise ValueError("All leaf nodes must have a value.")
-        if self.tag is None:
+        elif self.tag is None:
             return self.value
+        # Special case for self-closing tags like img
+        elif self.tag == "img":
+            return f"<{self.tag}{self.props_to_html()}>"
         else:
-            returnString += f"<{self.tag}"
-
-            if self.props is None:
-                returnString += f">"
-            else:
-                returnString += f"{self.props_to_html()}>"
-            
-            returnString += f"{self.value}</{self.tag}>"
-
+            returnString += f"<{self.tag}{self.props_to_html()}>{self.value}</{self.tag}>"
+        
         return returnString
