@@ -125,6 +125,73 @@ def text_to_textnodes(text):
 
     return newNodes
 
+def markdown_to_blocks(markdown):
+    '''
+    Input: raw markdown text, where blocks are seperated by 2 lines, \n\n
+    Output: list of block strings, with whitespace removed
+    '''
+    # first we chop it up
+    rawBlocks = markdown.split('\n\n')
+    blocks = []
+    for block in rawBlocks:
+        #must get rid of whitepsace
+        strippedBlock = block.strip()
+        #check to make sure its not now an empty block
+        if strippedBlock:
+            blocks.append(strippedBlock)
+    
+    return blocks
 
+def block_to_block_type(markdownBlock):
+    '''
+    - Headings start with 1-6 # characters, followed by a space and then the heading text.
+    - Code blocks must start with 3 backticks and end with 3 backticks.
+    - Every line in a quote block must start with a > character.
+    - Every line in an unordered list block must start with a * or - character, followed by a space.
+    - Every line in an ordered list block must start with a number followed by a . character and a space. The number must start at 1 and increment by 1 for each line.
+    - If none of the above conditions are met, the block is a normal paragraph.
 
-
+    paragraph
+    heading
+    code
+    quote
+    unordered_list
+    ordered_list
+    '''
+    #Headings start with 1-6 # characters, followed by a space and then the heading text.
+    if markdownBlock.startswith(('# ',
+    '## ', '### ', '#### ', '##### ', '###### ')):
+        return "heading"
+    
+    #Code blocks must start with 3 backticks and end with 3 backticks.
+    if markdownBlock.startswith('```') and markdownBlock.endswith('```'):
+        return "code"
+    
+    #Every line in a quote block must start with a > character.
+    lines = markdownBlock.split('\n')
+    allLineQuote = True
+    
+    for line in lines:
+        if not line.startswith('>'):
+            allLineQuote = False
+    if allLineQuote:
+        return "quote"
+    
+    #Every line in an unordered list block must start with a * or - character, followed by a space.
+    if all(line.strip().startswith(('* ', '- ')) for line in lines):
+        return "unordered_list"
+    
+    #Every line in an ordered list block must start with 
+    #a number followed by a . character and a space. 
+    #The number must start at 1 and increment by 1 for each line.
+    isOrderedList = True
+    i = 1
+    for line in lines:
+        #print(f"line: {line}, case: {i}. ")
+        if not line.startswith(f"{i}. "):
+            isOrderedList = False
+        i += 1
+    if isOrderedList:
+        return "ordered_list"
+    
+    return "paragraph"

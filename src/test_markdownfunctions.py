@@ -230,5 +230,157 @@ class TestTextToTextNodes(unittest.TestCase):
         self.assertEqual(nodes[0].text, "")
         self.assertEqual(nodes[0].text_type, TextType.NORMAL)
 
+    def test_basic_blocks(self):
+        markdown = """# Heading
+
+This is a paragraph with **bold** and *italic* text.
+
+* List item 1
+* List item 2"""
+
+        blocks = markdown_to_blocks(markdown)
+
+        self.assertEqual(len(blocks), 3)
+        self.assertEqual(blocks[0], "# Heading")
+        self.assertEqual(blocks[1], "This is a paragraph with **bold** and *italic* text.")
+        self.assertEqual(blocks[2], "* List item 1\n* List item 2")
+        
+    def test_empty_blocks_removed(self):
+        markdown = """# Heading
+
+
+
+This is a paragraph."""
+        blocks = markdown_to_blocks(markdown)
+        self.assertEqual(len(blocks), 2)
+        self.assertEqual(blocks[0], "# Heading")
+        self.assertEqual(blocks[1], "This is a paragraph.")
+        
+    def test_whitespace_stripped(self):
+        markdown = """   # Heading with spaces   
+
+    This paragraph has indentation.    """
+        blocks = markdown_to_blocks(markdown)
+        self.assertEqual(len(blocks), 2)
+        self.assertEqual(blocks[0], "# Heading with spaces")
+        self.assertEqual(blocks[1], "This paragraph has indentation.")
+        
+    def test_single_block(self):
+        markdown = "Just one block."
+        blocks = markdown_to_blocks(markdown)
+        self.assertEqual(len(blocks), 1)
+        self.assertEqual(blocks[0], "Just one block.")
+        
+    def test_empty_string(self):
+        markdown = ""
+        blocks = markdown_to_blocks(markdown)
+        self.assertEqual(len(blocks), 0)
+        
+    def test_only_whitespace(self):
+        markdown = "   \n\n  \n  "
+        blocks = markdown_to_blocks(markdown)
+        self.assertEqual(len(blocks), 0)
+        
+    def test_complex_document(self):
+        markdown = """# Main Heading
+
+## Subheading
+
+First paragraph
+with multiple lines.
+
+* List item 1
+* List item 2
+  * Nested item
+
+```python
+def hello():
+    print("Hello")
+```
+
+Final paragraph."""
+        blocks = markdown_to_blocks(markdown)
+        self.assertEqual(len(blocks), 6)
+        self.assertEqual(blocks[0], "# Main Heading")
+        self.assertEqual(blocks[1], "## Subheading")
+        self.assertEqual(blocks[2], "First paragraph\nwith multiple lines.")
+        self.assertEqual(blocks[3], "* List item 1\n* List item 2\n  * Nested item")
+        self.assertEqual(blocks[4], "```python\ndef hello():\n    print(\"Hello\")\n```")
+        self.assertEqual(blocks[5], "Final paragraph.")
+
+    def test_mtb_paragraph(self):
+        text = "This is a normal paragraph."
+        self.assertEqual(block_to_block_type(text), "paragraph")
+
+    def test_mtb_empty_block(self):
+        self.assertEqual(block_to_block_type(""), "paragraph")
+
+    def test_mtb_headings(self):
+        # Test all heading levels
+        for i in range(1, 7):
+            text = f"{'#' * i} Heading {i}"
+            self.assertEqual(block_to_block_type(text), "heading")
+        
+        # Test invalid heading formats
+        self.assertEqual(block_to_block_type("#Invalid heading"), "paragraph")
+        self.assertEqual(block_to_block_type("##No space"), "paragraph")
+
+    def test_mtb_code(self):
+        # Basic code block
+        text = "```\ncode block\n```"
+        self.assertEqual(block_to_block_type(text), "code")
+        
+        # Code block with language specified
+        text = "```python\ndef hello():\n    print('Hello')\n```"
+        self.assertEqual(block_to_block_type(text), "code")
+        
+        # Invalid code blocks
+        self.assertEqual(block_to_block_type("```\nUnclosed code block"), "paragraph")
+        self.assertEqual(block_to_block_type("`Single backtick`"), "paragraph")
+
+    def test_mtb_quote(self):
+        # Single line quote
+        self.assertEqual(block_to_block_type(">This is a quote"), "quote")
+        
+        # Multi-line quote
+        text = ">First line\n>Second line\n>Third line"
+        self.assertEqual(block_to_block_type(text), "quote")
+        
+        # Invalid quote (missing > on second line)
+        text = ">First line\nSecond line"
+        self.assertEqual(block_to_block_type(text), "paragraph")
+
+    def test_mtb_unordered_list(self):
+        # Single item
+        self.assertEqual(block_to_block_type("* Single item"), "unordered_list")
+        self.assertEqual(block_to_block_type("- Single item"), "unordered_list")
+        
+        # Multiple items
+        text = "* First item\n* Second item\n* Third item"
+        self.assertEqual(block_to_block_type(text), "unordered_list")
+        
+        # Mixed * and -
+        text = "* First item\n- Second item"
+        self.assertEqual(block_to_block_type(text), "unordered_list")
+        
+        # Invalid list (missing space after *)
+        self.assertEqual(block_to_block_type("*Invalid item"), "paragraph")
+
+    def test_mtb_ordered_list(self):
+        # Single item
+        self.assertEqual(block_to_block_type("1. Single item"), "ordered_list")
+        
+        # Multiple items
+        text = "1. First item\n2. Second item\n3. Third item"
+        self.assertEqual(block_to_block_type(text), "ordered_list")
+        
+        # Invalid ordered list (wrong numbering)
+        text = "1. First item\n3. Third item"
+        self.assertEqual(block_to_block_type(text), "paragraph")
+        
+        # Invalid ordered list (missing space after number)
+        self.assertEqual(block_to_block_type("1.Invalid item"), "paragraph")
+        
+
 if __name__ == '__main__':
     unittest.main()
